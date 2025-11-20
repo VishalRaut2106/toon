@@ -1,9 +1,9 @@
 {
   "name": "@toon-format/toon",
   "type": "module",
-  "version": "0.8.0",
-  "packageManager": "pnpm@10.20.0",
-  "description": "Token-Oriented Object Notation (TOON) – A compact, deterministic JSON format for LLM prompts",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.21.0",
+  "description": "Token-Oriented Object Notation (TOON) – Compact, human-readable, schema-aware encoding of JSON for LLM prompts",
   "author": "Johann Schopplich <hello@johannschopplich.com>",
   "license": "MIT",
   "homepage": "https://toonformat.dev",
@@ -25,11 +25,11 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
     }
   },
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -38,6 +38,6 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "@toon-format/spec": "^1.4.0"
+    "@toon-format/spec": "^2.0.0"
   }
 }

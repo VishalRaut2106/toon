@@ -5,8 +5,8 @@ import arraysObjects from '@toon-format/spec/tests/fixtures/encode/arrays-object
 import arraysPrimitive from '@toon-format/spec/tests/fixtures/encode/arrays-primitive.json'
 import arraysTabular from '@toon-format/spec/tests/fixtures/encode/arrays-tabular.json'
 import delimiters from '@toon-format/spec/tests/fixtures/encode/delimiters.json'
+import keyFolding from '@toon-format/spec/tests/fixtures/encode/key-folding.json'
 import objects from '@toon-format/spec/tests/fixtures/encode/objects.json'
-import options from '@toon-format/spec/tests/fixtures/encode/options.json'
 import primitives from '@toon-format/spec/tests/fixtures/encode/primitives.json'
 import whitespace from '@toon-format/spec/tests/fixtures/encode/whitespace.json'
 import { describe, expect, it } from 'vitest'
@@ -19,9 +19,9 @@ const fixtureFiles = [
   arraysTabular,
   arraysNested,
   arraysObjects,
+  keyFolding,
   delimiters,
   whitespace,
-  options,
 ] as Fixtures[]
 
 for (const fixtures of fixtureFiles) {
@@ -47,6 +47,7 @@ function resolveEncodeOptions(options?: TestCase['options']): ResolvedEncodeOpti
   return {
     indent: options?.indent ?? 2,
     delimiter: options?.delimiter ?? DEFAULT_DELIMITER,
-    lengthMarker: options?.lengthMarker === '#' ? '#' : false,
+    keyFolding: options?.keyFolding ?? 'off',
+    flattenDepth: options?.flattenDepth ?? Number.POSITIVE_INFINITY,
   }
 }

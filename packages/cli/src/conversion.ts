@@ -1,19 +1,20 @@
-import type { DecodeOptions, Delimiter, EncodeOptions } from '../../toon/src'
+import type { DecodeOptions, EncodeOptions } from '../../toon/src'
 import type { InputSource } from './types'
 import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import process from 'node:process'
 import { consola } from 'consola'
 import { estimateTokenCount } from 'tokenx'
-import { decode, encode } from '../../toon/src'
+import { decode, encode, encodeLines } from '../../toon/src'
 import { formatInputLabel, readInput } from './utils'
 
 export async function encodeToToon(config: {
   input: InputSource
   output?: string
-  delimiter: Delimiter
-  indent: number
-  lengthMarker: NonNullable<EncodeOptions['lengthMarker']>
+  indent: NonNullable<EncodeOptions['indent']>
+  delimiter: NonNullable<EncodeOptions['delimiter']>
+  keyFolding?: NonNullable<EncodeOptions['keyFolding']>
+  flattenDepth?: number
   printStats: boolean
 }): Promise<void> {
   const jsonContent = await readInput(config.input)
@@ -29,10 +30,21 @@ export async function encodeToToon(config: {
   const encodeOptions: EncodeOptions = {
     delimiter: config.delimiter,
     indent: config.indent,
-    lengthMarker: config.lengthMarker,
+    keyFolding: config.keyFolding,
+    flattenDepth: config.flattenDepth,
   }
 
-  const toonOutput = encode(data, encodeOptions)
+  let toonOutput: string
+
+  // When printing stats, we need the full string for token counting
+  if (config.printStats) {
+    toonOutput = encode(data, encodeOptions)
+  }
+  else {
+    // Use streaming encoder for non-stats path
+    const lines = Array.from(encodeLines(data, encodeOptions))
+    toonOutput = lines.join('\n')
+  }
 
   if (config.output) {
     await fsp.writeFile(config.output, toonOutput, 'utf-8')
@@ -59,8 +71,9 @@ export async function encodeToToon(config: {
 export async function decodeToJson(config: {
   input: InputSource
   output?: string
-  indent: number
-  strict: boolean
+  indent: NonNullable<DecodeOptions['indent']>
+  strict: NonNullable<DecodeOptions['strict']>
+  expandPaths?: NonNullable<DecodeOptions['expandPaths']>
 }): Promise<void> {
   const toonContent = await readInput(config.input)
 
@@ -69,6 +82,7 @@ export async function decodeToJson(config: {
     const decodeOptions: DecodeOptions = {
       indent: config.indent,
       strict: config.strict,
+      expandPaths: config.expandPaths,
     }
     data = decode(toonContent, decodeOptions)
   }

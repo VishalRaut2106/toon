@@ -25,11 +25,19 @@ export interface EncodeOptions {
    */
   delimiter?: Delimiter
   /**
-   * Optional marker to prefix array lengths in headers.
-   * When set to `#`, arrays render as [#N] instead of [N].
-   * @default false
+   * Enable key folding to collapse single-key wrapper chains.
+   * When set to 'safe', nested objects with single keys are collapsed into dotted paths
+   * (e.g., data.metadata.items instead of nested indentation).
+   * @default 'off'
    */
-  lengthMarker?: '#' | false
+  keyFolding?: 'off' | 'safe'
+  /**
+   * Maximum number of segments to fold when keyFolding is enabled.
+   * Controls how deep the folding can go in single-key chains.
+   * Values 0 or 1 have no practical effect (treated as effectively disabled).
+   * @default Infinity
+   */
+  flattenDepth?: number
 }
 
 export type ResolvedEncodeOptions = Readonly<Required<EncodeOptions>>
@@ -49,6 +57,14 @@ export interface DecodeOptions {
    * @default true
    */
   strict?: boolean
+  /**
+   * Enable path expansion to reconstruct dotted keys into nested objects.
+   * When set to 'safe', keys containing dots are expanded into nested structures
+   * if all segments are valid identifiers (e.g., data.metadata.items becomes nested objects).
+   * Pairs with keyFolding='safe' for lossless round-trips.
+   * @default 'off'
+   */
+  expandPaths?: 'off' | 'safe'
 }
 
 export type ResolvedDecodeOptions = Readonly<Required<DecodeOptions>>
@@ -62,7 +78,6 @@ export interface ArrayHeaderInfo {
   length: number
   delimiter: Delimiter
   fields?: string[]
-  hasLengthMarker: boolean
 }
 
 export interface ParsedLine {

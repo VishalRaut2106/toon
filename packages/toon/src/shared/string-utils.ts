@@ -22,7 +22,7 @@ export function escapeString(value: string): string {
  * Handles `\n`, `\t`, `\r`, `\\`, and `\"` escape sequences.
  */
 export function unescapeString(value: string): string {
-  let result = ''
+  let unescaped = ''
   let i = 0
 
   while (i < value.length) {
@@ -33,27 +33,27 @@ export function unescapeString(value: string): string {
 
       const next = value[i + 1]
       if (next === 'n') {
-        result += NEWLINE
+        unescaped += NEWLINE
         i += 2
         continue
       }
       if (next === 't') {
-        result += TAB
+        unescaped += TAB
         i += 2
         continue
       }
       if (next === 'r') {
-        result += CARRIAGE_RETURN
+        unescaped += CARRIAGE_RETURN
         i += 2
         continue
       }
       if (next === BACKSLASH) {
-        result += BACKSLASH
+        unescaped += BACKSLASH
         i += 2
         continue
       }
       if (next === DOUBLE_QUOTE) {
-        result += DOUBLE_QUOTE
+        unescaped += DOUBLE_QUOTE
         i += 2
         continue
       }
@@ -61,19 +61,15 @@ export function unescapeString(value: string): string {
       throw new SyntaxError(`Invalid escape sequence: \\${next}`)
     }
 
-    result += value[i]
+    unescaped += value[i]
     i++
   }
 
-  return result
+  return unescaped
 }
 
 /**
- * Finds the index of the closing double quote in a string, accounting for escape sequences.
- *
- * @param content The string to search in
- * @param start The index of the opening quote
- * @returns The index of the closing quote, or -1 if not found
+ * Finds the index of the closing double quote, accounting for escape sequences.
  */
 export function findClosingQuote(content: string, start: number): number {
   let i = start + 1
@@ -92,12 +88,7 @@ export function findClosingQuote(content: string, start: number): number {
 }
 
 /**
- * Finds the index of a specific character outside of quoted sections.
- *
- * @param content The string to search in
- * @param char The character to look for
- * @param start Optional starting index (defaults to 0)
- * @returns The index of the character, or -1 if not found outside quotes
+ * Finds the index of a character outside of quoted sections.
  */
 export function findUnquotedChar(content: string, char: string, start = 0): number {
   let inQuotes = false

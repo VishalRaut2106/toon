@@ -1,5 +1,5 @@
 import type { ArrayHeaderInfo, Delimiter, JsonPrimitive } from '../types'
-import { BACKSLASH, CLOSE_BRACE, CLOSE_BRACKET, COLON, DELIMITERS, DOUBLE_QUOTE, FALSE_LITERAL, HASH, NULL_LITERAL, OPEN_BRACE, OPEN_BRACKET, PIPE, TAB, TRUE_LITERAL } from '../constants'
+import { BACKSLASH, CLOSE_BRACE, CLOSE_BRACKET, COLON, DELIMITERS, DOUBLE_QUOTE, FALSE_LITERAL, NULL_LITERAL, OPEN_BRACE, OPEN_BRACKET, PIPE, TAB, TRUE_LITERAL } from '../constants'
 import { isBooleanOrNullLiteral, isNumericLiteral } from '../shared/literal-utils'
 import { findClosingQuote, findUnquotedChar, unescapeString } from '../shared/string-utils'
 
@@ -84,7 +84,7 @@ export function parseArrayHeaderLine(
     return
   }
 
-  const { length, delimiter, hasLengthMarker } = parsedBracket
+  const { length, delimiter } = parsedBracket
 
   // Check for fields segment
   let fields: string[] | undefined
@@ -102,7 +102,6 @@ export function parseArrayHeaderLine(
       length,
       delimiter,
       fields,
-      hasLengthMarker,
     },
     inlineValues: afterColon || undefined,
   }
@@ -111,15 +110,8 @@ export function parseArrayHeaderLine(
 export function parseBracketSegment(
   seg: string,
   defaultDelimiter: Delimiter,
-): { length: number, delimiter: Delimiter, hasLengthMarker: boolean } {
-  let hasLengthMarker = false
+): { length: number, delimiter: Delimiter } {
   let content = seg
-
-  // Check for length marker
-  if (content.startsWith(HASH)) {
-    hasLengthMarker = true
-    content = content.slice(1)
-  }
 
   // Check for delimiter suffix
   let delimiter = defaultDelimiter
@@ -137,16 +129,25 @@ export function parseBracketSegment(
     throw new TypeError(`Invalid array length: ${seg}`)
   }
 
-  return { length, delimiter, hasLengthMarker }
+  return { length, delimiter }
 }
 
 // #endregion
 
 // #region Delimited value parsing
 
+/**
+ * Parses a delimited string into values, respecting quoted strings and escape sequences.
+ *
+ * @remarks
+ * Uses a state machine that tracks:
+ * - `inQuotes`: Whether we're inside a quoted string (to ignore delimiters)
+ * - `valueBuffer`: Accumulates characters for the current value
+ * - Escape sequences: Handled within quoted strings
+ */
 export function parseDelimitedValues(input: string, delimiter: Delimiter): string[] {
   const values: string[] = []
-  let current = ''
+  let valueBuffer = ''
   let inQuotes = false
   let i = 0
 
@@ -155,32 +156,32 @@ export function parseDelimitedValues(input: string, delimiter: Delimiter): strin
 
     if (char === BACKSLASH && i + 1 < input.length && inQuotes) {
       // Escape sequence in quoted string
-      current += char + input[i + 1]
+      valueBuffer += char + input[i + 1]
       i += 2
       continue
     }
 
     if (char === DOUBLE_QUOTE) {
       inQuotes = !inQuotes
-      current += char
+      valueBuffer += char
       i++
       continue
     }
 
     if (char === delimiter && !inQuotes) {
-      values.push(current.trim())
-      current = ''
+      values.push(valueBuffer.trim())
+      valueBuffer = ''
       i++
       continue
     }
 
-    current += char
+    valueBuffer += char
     i++
   }
 
   // Add last value
-  if (current || values.length > 0) {
-    values.push(current.trim())
+  if (valueBuffer || values.length > 0) {
+    values.push(valueBuffer.trim())
   }
 
   return values
@@ -252,22 +253,22 @@ export function parseStringLiteral(token: string): string {
 }
 
 export function parseUnquotedKey(content: string, start: number): { key: string, end: number } {
-  let end = start
-  while (end < content.length && content[end] !== COLON) {
-    end++
+  let parsePosition = start
+  while (parsePosition < content.length && content[parsePosition] !== COLON) {
+    parsePosition++
   }
 
   // Validate that a colon was found
-  if (end >= content.length || content[end] !== COLON) {
+  if (parsePosition >= content.length || content[parsePosition] !== COLON) {
     throw new SyntaxError('Missing colon after key')
   }
 
-  const key = content.slice(start, end).trim()
+  const key = content.slice(start, parsePosition).trim()
 
   // Skip the colon
-  end++
+  parsePosition++
 
-  return { key, end }
+  return { key, end: parsePosition }
 }
 
 export function parseQuotedKey(content: string, start: number): { key: string, end: number } {
@@ -281,24 +282,23 @@ export function parseQuotedKey(content: string, start: number): { key: string, e
   // Extract and unescape the key content
   const keyContent = content.slice(start + 1, closingQuoteIndex)
   const key = unescapeString(keyContent)
-  let end = closingQuoteIndex + 1
+  let parsePosition = closingQuoteIndex + 1
 
   // Validate and skip colon after quoted key
-  if (end >= content.length || content[end] !== COLON) {
+  if (parsePosition >= content.length || content[parsePosition] !== COLON) {
     throw new SyntaxError('Missing colon after key')
   }
-  end++
+  parsePosition++
 
-  return { key, end }
+  return { key, end: parsePosition }
 }
 
-export function parseKeyToken(content: string, start: number): { key: string, end: number } {
-  if (content[start] === DOUBLE_QUOTE) {
-    return parseQuotedKey(content, start)
-  }
-  else {
-    return parseUnquotedKey(content, start)
-  }
+export function parseKeyToken(content: string, start: number): { key: string, end: number, isQuoted: boolean } {
+  const isQuoted = content[start] === DOUBLE_QUOTE
+  const result = isQuoted
+    ? parseQuotedKey(content, start)
+    : parseUnquotedKey(content, start)
+  return { ...result, isQuoted }
 }
 
 // #endregion
