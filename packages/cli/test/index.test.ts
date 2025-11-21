@@ -33,15 +33,16 @@ describe('toon CLI', () => {
       }
       const cleanup = mockStdin(JSON.stringify(data))
 
-      const stdout: string[] = []
-      vi.spyOn(console, 'log').mockImplementation((message?: unknown) => {
-        stdout.push(String(message ?? ''))
+      const writeChunks: string[] = []
+      vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        writeChunks.push(String(chunk))
+        return true
       })
 
       try {
         await runCli()
-        expect(stdout).toHaveLength(1)
-        expect(stdout[0]).toBe(encode(data))
+        const fullOutput = writeChunks.join('')
+        expect(fullOutput).toBe(`${encode(data)}\n`)
       }
       finally {
         cleanup()
@@ -83,16 +84,17 @@ describe('toon CLI', () => {
         'input.json': JSON.stringify(data),
       })
 
-      const stdout: string[] = []
-      vi.spyOn(console, 'log').mockImplementation((message?: unknown) => {
-        stdout.push(String(message ?? ''))
+      const writeChunks: string[] = []
+      vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        writeChunks.push(String(chunk))
+        return true
       })
 
       try {
         await context.run(['input.json'])
 
-        expect(stdout).toHaveLength(1)
-        expect(stdout[0]).toBe(encode(data))
+        const fullOutput = writeChunks.join('')
+        expect(fullOutput).toBe(`${encode(data)}\n`)
       }
       finally {
         await context.cleanup()
@@ -230,16 +232,17 @@ describe('toon CLI', () => {
       const data = { items: [1, 2, 3] }
       const cleanup = mockStdin(JSON.stringify(data))
 
-      const stdout: string[] = []
-      vi.spyOn(console, 'log').mockImplementation((message?: unknown) => {
-        stdout.push(String(message ?? ''))
+      const writeChunks: string[] = []
+      vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        writeChunks.push(String(chunk))
+        return true
       })
 
       try {
         await runCli({ rawArgs: ['--delimiter', '|'] })
 
-        expect(stdout).toHaveLength(1)
-        expect(stdout[0]).toBe(encode(data, { delimiter: '|' }))
+        const fullOutput = writeChunks.join('')
+        expect(fullOutput).toBe(`${encode(data, { delimiter: '|' })}\n`)
       }
       finally {
         cleanup()
@@ -254,16 +257,17 @@ describe('toon CLI', () => {
       }
       const cleanup = mockStdin(JSON.stringify(data))
 
-      const stdout: string[] = []
-      vi.spyOn(console, 'log').mockImplementation((message?: unknown) => {
-        stdout.push(String(message ?? ''))
+      const writeChunks: string[] = []
+      vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        writeChunks.push(String(chunk))
+        return true
       })
 
       try {
         await runCli({ rawArgs: ['--indent', '4'] })
 
-        expect(stdout).toHaveLength(1)
-        expect(stdout[0]).toBe(encode(data, { indent: 4 }))
+        const fullOutput = writeChunks.join('')
+        expect(fullOutput).toBe(`${encode(data, { indent: 4 })}\n`)
       }
       finally {
         cleanup()
@@ -289,6 +293,138 @@ describe('toon CLI', () => {
       }
       finally {
         cleanup()
+      }
+    })
+  })
+
+  describe('streaming output', () => {
+    it('streams large JSON to TOON file with identical output', async () => {
+      const data = {
+        items: Array.from({ length: 1000 }, (_, i) => ({
+          id: i,
+          name: `Item ${i}`,
+          value: Math.random(),
+        })),
+      }
+
+      const context = await createCliTestContext({
+        'large-input.json': JSON.stringify(data, undefined, 2),
+      })
+
+      const consolaSuccess = vi.spyOn(consola, 'success').mockImplementation(() => undefined)
+
+      try {
+        await context.run(['large-input.json', '--output', 'output.toon'])
+
+        const output = await context.read('output.toon')
+        // Verify streaming produces identical output to `encode()`
+        const expected = encode(data, {
+          delimiter: DEFAULT_DELIMITER,
+          indent: 2,
+        })
+
+        expect(output).toBe(expected)
+        expect(consolaSuccess).toHaveBeenCalledWith(expect.stringMatching(/Encoded .* → .*/))
+      }
+      finally {
+        await context.cleanup()
+      }
+    })
+
+    it('streams to stdout using process.stdout.write', async () => {
+      const data = {
+        users: [
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+        ],
+      }
+
+      const context = await createCliTestContext({
+        'input.json': JSON.stringify(data),
+      })
+
+      const writeChunks: string[] = []
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        writeChunks.push(String(chunk))
+        return true
+      })
+
+      try {
+        await context.run(['input.json'])
+
+        expect(writeSpy).toHaveBeenCalled()
+
+        // Verify complete output matches `encode()`
+        const fullOutput = writeChunks.join('')
+        const expected = `${encode(data)}\n`
+        expect(fullOutput).toBe(expected)
+      }
+      finally {
+        await context.cleanup()
+      }
+    })
+
+    it('handles empty object streaming correctly', async () => {
+      const data = {}
+
+      const context = await createCliTestContext({
+        'empty.json': JSON.stringify(data),
+      })
+
+      try {
+        await context.run(['empty.json', '--output', 'output.toon'])
+
+        const output = await context.read('output.toon')
+        expect(output).toBe(encode(data))
+      }
+      finally {
+        await context.cleanup()
+      }
+    })
+
+    it('handles single-line output streaming correctly', async () => {
+      const data = { key: 'value' }
+
+      const context = await createCliTestContext({
+        'single.json': JSON.stringify(data),
+      })
+
+      try {
+        await context.run(['single.json', '--output', 'output.toon'])
+
+        const output = await context.read('output.toon')
+        expect(output).toBe(encode(data))
+      }
+      finally {
+        await context.cleanup()
+      }
+    })
+
+    it('uses non-streaming path when stats are enabled', async () => {
+      const data = {
+        items: [
+          { id: 1, value: 'test' },
+          { id: 2, value: 'data' },
+        ],
+      }
+
+      const context = await createCliTestContext({
+        'input.json': JSON.stringify(data),
+      })
+
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+      const consolaInfo = vi.spyOn(consola, 'info').mockImplementation(() => undefined)
+      const consolaSuccess = vi.spyOn(consola, 'success').mockImplementation(() => undefined)
+
+      try {
+        await context.run(['input.json', '--stats'])
+
+        expect(consolaInfo).toHaveBeenCalledWith(expect.stringMatching(/Token estimates:/))
+        expect(consolaSuccess).toHaveBeenCalledWith(expect.stringMatching(/Saved.*tokens/))
+        expect(consoleLogSpy).toHaveBeenCalledWith(encode(data))
+      }
+      finally {
+        await context.cleanup()
       }
     })
   })

@@ -95,6 +95,29 @@ const toon = encode(data, { delimiter: '\t' })
 
 Tell the model "fields are tab-separated" when using tabs. For more on delimiters, see the [Format Overview](/guide/format-overview#delimiter-options).
 
+## Streaming Large Outputs
+
+When working with large datasets (thousands of records or deeply nested structures), use `encodeLines()` to stream TOON output line-by-line instead of building the full string in memory.
+
+```ts
+import { encodeLines } from '@toon-format/toon'
+
+const largeData = await fetchThousandsOfRecords()
+
+// Stream large dataset without loading full string in memory
+for (const line of encodeLines(largeData, { delimiter: '\t' })) {
+  process.stdout.write(`${line}\n`)
+}
+```
+
+The CLI also supports streaming for memory-efficient JSON-to-TOON conversion:
+
+```bash
+toon large-dataset.json --output output.toon
+```
+
+This streaming approach prevents out-of-memory errors when preparing large context windows for LLMs. For complete details on `encodeLines()`, see the [API reference](/reference/api#encodelines).
+
 ## Tips and Pitfalls
 
 **Show, don't describe.** Don't explain TOON syntax in detail – just show an example. Models learn the pattern from context. A simple code block with 2-5 rows is more effective than paragraphs of explanation.

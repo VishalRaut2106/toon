@@ -1,6 +1,6 @@
 # Command Line Interface
 
-The `@toon-format/cli` package provides a command-line interface for encoding JSON to TOON and decoding TOON back to JSON. Use it for quick conversions without writing code, estimating token savings before sending data to LLMs, or integrating TOON into shell pipelines with tools like curl and jq. It supports stdin/stdout workflows, multiple delimiter options, token statistics, and all encoding/decoding features available in the library.
+The `@toon-format/cli` package provides a command-line interface for encoding JSON to TOON and decoding TOON back to JSON. Use it to analyze token savings before integrating TOON into your application, or to process JSON data through TOON in shell pipelines using stdin/stdout with tools like curl and jq. The CLI supports token statistics, streaming for large datasets, and all encoding options available in the library.
 
 The CLI is built on top of the `@toon-format/toon` TypeScript implementation and adheres to the [latest specification](/reference/spec).
 
@@ -108,6 +108,14 @@ cat data.toon | toon --decode
 
 JSON→TOON conversions use line-by-line encoding internally, which avoids holding the entire TOON document in memory. This makes the CLI efficient for large datasets without requiring additional configuration.
 
+```bash
+# Encode large JSON file with minimal memory usage
+toon huge-dataset.json -o output.toon
+
+# Process millions of records efficiently via stdin
+cat million-records.json | toon > output.toon
+```
+
 ::: info Token Statistics
 When using the `--stats` flag, the CLI builds the full TOON string once to compute accurate token counts. For maximum memory efficiency on very large files, omit `--stats`.
 :::
@@ -138,6 +146,15 @@ toon data.json --stats -o output.toon
 ```
 
 This helps you estimate token cost savings before sending data to LLMs.
+
+Example output:
+
+```
+✔ Encoded data.json → output.toon
+
+ℹ Token estimates: ~15,145 (JSON) → ~8,745 (TOON)
+✔ Saved ~6,400 tokens (-42.3%)
+```
 
 ### Alternative Delimiters
 

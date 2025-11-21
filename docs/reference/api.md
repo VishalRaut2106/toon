@@ -129,14 +129,14 @@ encode(data, { delimiter: '\t', keyFolding: 'safe' })
 
 ## `encodeLines(value, options?)`
 
-Converts any JSON-serializable value to TOON format as a sequence of lines, without building the full string in memory. Suitable for streaming large outputs to files, HTTP responses, or process stdout.
+**Preferred method for streaming TOON output.** Converts any JSON-serializable value to TOON format as a sequence of lines, without building the full string in memory. Suitable for streaming large outputs to files, HTTP responses, or process stdout.
 
 ```ts
 import { encodeLines } from '@toon-format/toon'
 
-// Stream to stdout
+// Stream to stdout (Node.js)
 for (const line of encodeLines(data)) {
-  console.log(line)
+  process.stdout.write(`${line}\n`)
 }
 
 // Write to file line-by-line
@@ -158,7 +158,7 @@ const lineArray = Array.from(encodeLines(data))
 
 ### Return Value
 
-Returns an `Iterable<string>` that yields TOON lines one at a time. Each yielded string is a single line without a trailing newline character.
+Returns an `Iterable<string>` that yields TOON lines one at a time. **Each yielded string is a single line without a trailing newline character** — you must add `\n` when writing to streams or stdout.
 
 ::: info Relationship to `encode()`
 `encode(value, options)` is equivalent to:

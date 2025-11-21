@@ -361,9 +361,18 @@ function* encodeListItemValueLines(
   if (isJsonPrimitive(value)) {
     yield indentedListItem(depth, encodePrimitive(value, options.delimiter), options.indent)
   }
-  else if (isJsonArray(value) && isArrayOfPrimitives(value)) {
-    const arrayLine = encodeInlineArrayLine(value, options.delimiter)
-    yield indentedListItem(depth, arrayLine, options.indent)
+  else if (isJsonArray(value)) {
+    if (isArrayOfPrimitives(value)) {
+      const arrayLine = encodeInlineArrayLine(value, options.delimiter)
+      yield indentedListItem(depth, arrayLine, options.indent)
+    }
+    else {
+      const header = formatHeader(value.length, { delimiter: options.delimiter })
+      yield indentedListItem(depth, header, options.indent)
+      for (const item of value) {
+        yield* encodeListItemValueLines(item, depth + 1, options)
+      }
+    }
   }
   else if (isJsonObject(value)) {
     yield* encodeObjectAsListItemLines(value, depth, options)

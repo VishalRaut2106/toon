@@ -27,6 +27,7 @@ Think of it as a translation layer: use JSON programmatically, and encode it as 
 - [Benchmarks](#benchmarks)
 - [Installation & Quick Start](#installation--quick-start)
 - [Playgrounds](#playgrounds)
+- [Editor Support](#editor-support)
 - [CLI](#cli)
 - [Format Overview](#format-overview)
 - [Using TOON with LLMs](#using-toon-with-llms)
@@ -763,12 +764,47 @@ console.log(encode(data))
 //   2,Bob,user
 ```
 
+**Streaming large datasets:**
+
+```ts
+import { encodeLines } from '@toon-format/toon'
+
+const largeData = await fetchThousandsOfRecords()
+
+// Memory-efficient streaming for large data
+for (const line of encodeLines(largeData)) {
+  process.stdout.write(`${line}\n`)
+}
+```
+
 ## Playgrounds
 
 Experiment with TOON format interactively using these community-built tools for token comparison, format conversion, and validation:
 
 - [Format Tokenization Playground](https://www.curiouslychase.com/playground/format-tokenization-exploration)
 - [TOON Tools](https://toontools.vercel.app/)
+
+## Editor Support
+
+### VS Code
+
+[TOON Language Support](https://marketplace.visualstudio.com/items?itemName=vishalraut.vscode-toon) - Syntax highlighting, validation, conversion, and token analysis.
+
+```bash
+code --install-extension vishalraut.vscode-toon
+```
+
+### Tree-sitter Grammar
+
+[tree-sitter-toon](https://github.com/3swordman/tree-sitter-toon) - Grammar for Tree-sitter-compatible editors (Neovim, Helix, Emacs, Zed).
+
+### Neovim
+
+[toon.nvim](https://github.com/thalesgelinger/toon.nvim) - Lua-based plugin.
+
+### Other Editors
+
+Use YAML syntax highlighting as a close approximation.
 
 ## CLI
 
@@ -857,6 +893,7 @@ Comprehensive guides, references, and resources to help you get the most out of 
 - **Scala:** [toon4s](https://github.com/vim89/toon4s)
 - **Lua/Neovim:** [toon.nvim](https://github.com/thalesgelinger/toon.nvim)
 - **OCaml:** [ocaml-toon](https://github.com/davesnx/ocaml-toon)
+- **Perl:** [Data::TOON](https://github.com/ytnobody/p5-Data-TOON)
 - **PHP:** [toon-php](https://github.com/HelgeSverre/toon-php)
 - **Laravel Framework:** [laravel-toon](https://github.com/jobmetric/laravel-toon)
 - **R**: [toon](https://github.com/laresbernardo/toon)
